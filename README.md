@@ -1,32 +1,85 @@
-# Desafio DevOps jr PicPay
+# PicPay DevOps Challenge — Solução
 
-Obrigado pelo interesse em fazer parte do nosso time! Preparamos este desafio com carinho para ajudar a entender um pouco mais dos seus conhecimentos na área de DevOps/SRE
+Este repositório contém minha solução para o desafio proposto pelo PicPay, que consiste em corrigir e executar uma aplicação multicontainer utilizando Docker e Docker Compose.
 
-Se não entender algum conceito ou parte do problema, não é motivo para se preocupar! Queremos que faça o desafio até onde souber.
+A aplicação é composta por quatro serviços principais:
 
-No mais, divirta-se :D
+- **Frontend (Node.js)**: Interface web acessível via navegador.
+- **Writer (Python)**: Armazena dados recebidos no Redis.
+- **Reader (Go)**: Lê os dados armazenados no Redis.
+- **Redis**: Banco de dados em memória, utilizado como cache/armazenamento.
 
-## Conteúdo do repositório
-Na pasta `services` deste repositório existem 3 aplicações, um frontend que se comunica com um backend go e um em python, e estes se comunicam com um Redis para troca de informações. Tudo isso é orquestrado pelo docker-compose na raiz do repositório.
+---
 
-As aplicações contém falhas propositais, de código, projeto, imagem docker, etc. Embora cada aplicação funcione individualmente, o conjunto não sobe...
+## Etapas de Correção e Configuração
 
-## O que deve ser feito?
+### Docker Compose
 
-Faça um fork deste repositório e envie uma pull request contendo:
-- ajustes que fazem todas as aplicações subirem e se comunicarem
-- um README contendo os seus pensamentos ao longo do projeto
-- um desenho contendo os serviços que explique o funcionamento
+- Corrigido nome do serviço `redis` e adicionada a porta padrão (`6379`).
+- Declaradas corretamente as redes `backend` e `frontend`.
+- Removido o `reader` da rede `frontend`, pois não havia necessidade.
+- Atualizada a versão do Compose, removendo campos obsoletos.
 
-Faça commits ao longo do processo, queremos entender o seu modo de pensar! :)
+### Writer (Python)
 
-Para a entrevista, separe também anotações contendo melhorias que faria em cada aplicação e o motivo. Não envie estas anotações na pull request.
+- Removido `ENTRYPOINT` incorreto e ajustado para `CMD ["python", "main.py"]`.
+- Adicionado o módulo `redis` ao `requirements.txt`.
+- Dockerfile atualizado para instalar dependências corretamente.
 
-## Bibliografia recomendada
-https://docs.docker.com/engine/reference/builder/
+### Reader (Go)
 
-https://docs.docker.com/compose/compose-file/
+- Corrigido `WORKDIR` para `/app` no Dockerfile.
+- Adicionado comando para criação de `go.mod` caso não exista.
+- Ajustada a versão base da imagem do Go para 1.23.0.
+- Corrigido uso da função `client.Get` no código-fonte.
 
-https://12factor.net/
+### Web (Frontend)
 
-https://conventionalcommits.org/
+- Corrigido mapeamento e exposição da porta `3000`.
+
+---
+
+## Como Executar
+
+1. Certifique-se de que o Docker e Docker Compose estão instalados.
+2. Execute o seguinte comando na raiz do projeto:
+
+```bash
+docker compose up --build
+```
+
+3. Acesse no navegador: [http://localhost:5000](http://localhost:5000)
+
+---
+
+## Diagrama de Funcionamento
+
+```mermaid
+graph TD
+    Browser[User (Browser)]
+    subgraph Frontend [Frontend Service]
+        FE["Home (Node.js App)"]
+    end
+    subgraph Backend [Backend Services]
+        Reader["Reader (Go App)"]
+        Writer["Writer (Python App)"]
+    end
+    subgraph Database [Database]
+        Redis[(Redis - Key-Value Store)]
+    end
+    Browser --> FE
+    FE -->|Status Check| Reader
+    FE -->|Status Check| Writer
+    FE -->|GET /data| Reader
+    FE -->|POST /write| Writer
+    Writer -->|Set SHAREDKEY| Redis
+    Reader -->|Get SHAREDKEY| Redis
+```
+
+---
+
+## Resultado Final
+
+- Todos os containers iniciam corretamente.
+- A comunicação entre serviços está funcionando conforme esperado.
+- A aplicação é acessível e responde às interações via navegador.
